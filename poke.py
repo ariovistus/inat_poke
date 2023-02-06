@@ -3,7 +3,7 @@ import pdb
 import json
 
 with open("auth.json") as f:
-    headers = json.load("auth.json")
+    headers = json.load(f)
 
 places = {
     "KITSAP": 1231,
@@ -80,10 +80,14 @@ def get_species(placename):
 def get_unfound(unfound_at_placename, found_placename):
     results = get_species(unfound_at_placename)
     my_observations = get_my_obervations(found_placename)
+    my_seen_taxa = set()
+    for taxon,obs in my_observations.items():
+      for taxon_id in obs['taxon']['ancestor_ids']:
+        my_seen_taxa.add(taxon_id)
 
     for row in results:
         x = ""
-        if row['taxon']['id'] not in my_observations:
+        if row['taxon']['id'] not in my_seen_taxa:
             print("%s,%s,%s" % (row['taxon']['name'], row["taxon"].get('preferred_common_name', ''), row['count']))
 
 
