@@ -1,4 +1,5 @@
 import requests_cache
+import csv
 import pdb
 import json
 
@@ -77,7 +78,7 @@ def get_species(placename):
 
     return results
 
-def get_unfound(unfound_at_placename, found_placename):
+def get_unfound(unfound_at_placename, found_placename, filename):
     results = get_species(unfound_at_placename)
     my_observations = get_my_obervations(found_placename)
     my_seen_taxa = set()
@@ -85,10 +86,12 @@ def get_unfound(unfound_at_placename, found_placename):
       for taxon_id in obs['taxon']['ancestor_ids']:
         my_seen_taxa.add(taxon_id)
 
-    for row in results:
-        x = ""
-        if row['taxon']['id'] not in my_seen_taxa:
-            print("%s,%s,%s" % (row['taxon']['name'], row["taxon"].get('preferred_common_name', ''), row['count']))
+    with open(filename, 'w') as f:
+      writer = csv.writer(f)
+      for row in results:
+          x = ""
+          if row['taxon']['id'] not in my_seen_taxa:
+            writer.writerow([row['taxon']['name'], row['taxon'].get('preferred_common_name', ''), row['count']])
 
 
 def main():
@@ -114,4 +117,5 @@ def main():
 
 
 
-get_unfound("UT", "USA")
+#get_unfound("WA", "WA", 'washington.csv')
+get_unfound("UT", "USA", 'utah.csv')
