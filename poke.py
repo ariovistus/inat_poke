@@ -10,6 +10,7 @@ places = {
     "KITSAP": 1231,
     "SKAGIT": 1236,
     "WA": 46,
+    "CO": 34,
     "UT": 52,
     "USA": 1,
 }
@@ -118,4 +119,5 @@ def main():
 
 
 #get_unfound("WA", "WA", 'washington.csv')
-get_unfound("UT", "USA", 'utah.csv')
+#get_unfound("UT", "USA", 'utah.csv')
+get_unfound("CO", "USA", 'colorado.csv')
