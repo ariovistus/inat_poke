@@ -36,14 +36,15 @@ def get_my_obervations(placename):
     pages = 1
     result_count = data['total_results']
     per_page = data['per_page']
-    observations = dict([(row['taxon']['id'], row) for row in data['results']])
+    observations = dict([(row['taxon']['id'], row) for row in data['results'] if row['taxon'] is not None])
     while pages * per_page < result_count:
         pages += 1
         params2['page'] = pages
         r = session.get(url2, params=params2, headers=headers)
         data = r.json()
         for row in data['results']:
-            observations[row['taxon']['id']] = row
+            if row['taxon'] is not None:
+                observations[row['taxon']['id']] = row
 
     return observations
 
@@ -118,6 +119,7 @@ def main():
 
 
 
-#get_unfound("WA", "WA", 'washington.csv')
+get_unfound("WA", "WA", 'washington.csv')
 #get_unfound("UT", "USA", 'utah.csv')
-get_unfound("CO", "USA", 'colorado.csv')
+#get_unfound("CO", "USA", 'colorado.csv')
+#get_unfound("SKAGIT", "SKAGIT", 'skagit.csv')
