@@ -1,5 +1,6 @@
 import requests_cache
 import csv
+import time
 import pdb
 import json
 
@@ -17,8 +18,13 @@ places = {
 
 session = requests_cache.CachedSession("inat")
 
-def get_my_obervations(placename):
+def get_observations(params):
     url2 = "https://api.inaturalist.org/v1/observations"
+    print("get observations, page=%r" % params['page'])
+    r = session.get(url2, params=params, headers=headers)
+    return r
+
+def get_my_obervations(placename):
 
     params2 = {
         "verifiable": "true",
@@ -31,7 +37,7 @@ def get_my_obervations(placename):
         "per_page": 24,
         "page": 1,
     }
-    r = session.get(url2, params=params2, headers=headers)
+    r = get_observations(params2)
     data = r.json()
     pages = 1
     result_count = data['total_results']
@@ -40,8 +46,17 @@ def get_my_obervations(placename):
     while pages * per_page < result_count:
         pages += 1
         params2['page'] = pages
-        r = session.get(url2, params=params2, headers=headers)
-        data = r.json()
+        r = get_observations(params2)
+        if r.status_code == 429:
+            print("oop, got 429 too many requests, backing off for 10 seconds")
+            time.sleep(10)
+            pages -= 1
+            continue
+        try:
+            data = r.json()
+        except Exception as e:
+            print("json parse failed on %s" % r.text)
+            raise e
         for row in data['results']:
             if row['taxon'] is not None:
                 observations[row['taxon']['id']] = row
@@ -52,7 +67,13 @@ def get_my_obervations(placename):
 def get_kitsap_species():
     return get_species("KITSAP")
 
-def get_species(placename):
+def get_species_page(params, placename, month):
+    url = "https://api.inaturalist.org/v1/observations/species_counts"
+    print("getting species for %r at %r, page=%r" % (placename, month, params['page']))
+    r = session.get(url, params=params, headers=headers)
+    return r
+
+def get_species(placename, month):
     url = "https://api.inaturalist.org/v1/observations/species_counts"
 
     params = {
@@ -63,7 +84,10 @@ def get_species(placename):
         "preferred_place_id": 1,
         "page": 1,
     }
-    r = session.get(url, params=params, headers=headers)
+    if month is not None:
+        params['month'] = month
+
+    r = get_species_page(params, placename, month)
 
     data = r.json()
     results = [row for row in data['results']]
@@ -74,14 +98,19 @@ def get_species(placename):
     while pages * per_page < result_count:
         pages += 1
         params['page'] = pages
-        r = session.get(url, params=params, headers=headers)
+        r = get_species_page(params, placename, month)
+        if r.status_code == 429:
+            print("oop, got 429 too many requests. backing off for 10 seconds")
+            time.sleep(10)
+            pages -= 1
+            continue
         data = r.json()
         results.extend([row for row in data['results']])
 
     return results
 
-def get_unfound(unfound_at_placename, found_placename, filename):
-    results = get_species(unfound_at_placename)
+def get_unfound(unfound_at_placename, found_placename, filename, month=None):
+    results = get_species(unfound_at_placename, month)
     my_observations = get_my_obervations(found_placename)
     my_seen_taxa = set()
     for taxon,obs in my_observations.items():
@@ -119,6 +148,7 @@ def main():
 
 
 
+#get_unfound("WA", "WA", 'washington.csv', month=['11','12'])
 get_unfound("WA", "WA", 'washington.csv')
 #get_unfound("UT", "USA", 'utah.csv')
 #get_unfound("CO", "USA", 'colorado.csv')
